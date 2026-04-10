@@ -1,34 +1,37 @@
+import type { Context } from "../global.types";
 import type { Gameserver, Services } from "./types";
-import { base } from "../../config/constants";
+import { base, platforms } from "../../config/constants";
 
 import axios from "axios";
 
-const platforms: string[] = ["arkxb", "arkps"];
-
-// prettier-ignore
-const getGameserver = async (token: string, id: number): Promise<Gameserver> => {
+const getGameserver = async (
+  ctx: Omit<Context, "guild">,
+): Promise<Gameserver> => {
   const {
     data: { data },
-  } = await axios.get(`${base}/services/${id}/gameservers`, {
-    headers: { Authorization: `Bearer ${token}` },
+  } = await axios.get(`${base}/services/${ctx.server_id}/gameservers`, {
+    headers: { Authorization: `Bearer ${ctx.token}` },
   });
 
   return data.gameserver;
 };
 
-// prettier-ignore
-export const getServers = async (token: string): Promise<Gameserver[]> => {
+export const getServers = async (
+  ctx: Pick<Context, "token">,
+): Promise<Gameserver[]> => {
   const {
     data: { data },
   } = await axios.get(`${base}/services`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${ctx.token}` },
   });
 
   const filtered = data.services.filter((service: Services) =>
     platforms.includes(service.details.folder_short),
   );
 
-  return await Promise.all(
-    filtered.map((service: Services) => getGameserver(token, service.id)),
+  return Promise.all(
+    filtered.map((service: Services) =>
+      getGameserver({ ...ctx, server_id: service.id }),
+    ),
   );
 };
