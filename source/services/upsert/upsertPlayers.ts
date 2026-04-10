@@ -4,7 +4,7 @@ import { db } from "../../config/firebase";
 
 export const upsertPlayers = async (
   players: Player[],
-  context: Omit<Context, "token">,
+  { guild, server_id }: Omit<Context, "token">,
 ) => {
   const batch = db.batch();
 
@@ -13,7 +13,7 @@ export const upsertPlayers = async (
 
     const schema = {
       server_info: {
-        server_id: context.server_id,
+        server_id,
       },
       player_info: {
         last_online: player.last_online,
@@ -24,7 +24,7 @@ export const upsertPlayers = async (
 
     const ref = db
       .collection("accounts")
-      .doc(context.guild)
+      .doc(guild)
       .collection("players")
       .doc(player.id);
 

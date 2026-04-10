@@ -4,13 +4,17 @@ import { getPlayers } from "./services/players/getPlayers";
 import { getServers } from "./services/servers/getServers";
 import { db } from "./config/firebase";
 
+interface AccountToken {
+  token: string;
+}
+
 const main = async (): Promise<void> => {
   const tokenRef = db.collection("accounts");
   const snapshot = await tokenRef.get();
 
   await Promise.all(
     snapshot.docs.map(async (doc) => {
-      const { token } = doc.data();
+      const { token } = doc.data() as AccountToken;
       if (!token) return Promise.resolve();
       const context = { token, guild: doc.id };
 
