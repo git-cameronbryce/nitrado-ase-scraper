@@ -1,7 +1,7 @@
-import axios from "axios";
+import type { Gameserver, Services } from "./types";
 import { base } from "../../config/constants";
 
-import type { Gameserver, Services } from "./types";
+import axios from "axios";
 
 const platforms: string[] = ["arkxb", "arkps"];
 
