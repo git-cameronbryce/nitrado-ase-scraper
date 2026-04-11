@@ -12,14 +12,8 @@ export const upsertPlayers = async (
     if (!player.online) return;
 
     const schema = {
-      server_info: {
-        server_id,
-      },
-      player_info: {
-        last_online: player.last_online,
-        name: player.name,
-        id: player.id,
-      },
+      server_info: { server_id },
+      player_info: { ...player },
     };
 
     const ref = db
@@ -32,5 +26,5 @@ export const upsertPlayers = async (
   });
 
   await batch.commit();
-  console.log("Batch committed");
+  console.log("Player batch committed");
 };
