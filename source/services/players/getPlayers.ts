@@ -7,15 +7,23 @@ import axios from "axios";
 export const getPlayers = async (
   ctx: Omit<Context, "guild">,
 ): Promise<Player[]> => {
-  const { token, server_id: id } = ctx;
+  try {
+    const {
+      data: { data },
+    } = await axios.get(
+      `${base}/services/${ctx.server_id}/gameservers/games/players`,
+      {
+        headers: {
+          Authorization: `Bearer ${ctx.token}`,
+        },
+      },
+    );
 
-  const {
-    data: { data },
-  } = await axios.get(`${base}/services/${id}/gameservers/games/players`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  return data.players;
+    return data.players;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.code === "429") console.log("Rate limited");
+    }
+    throw error;
+  }
 };
