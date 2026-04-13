@@ -16,8 +16,8 @@ const main = async (): Promise<void> => {
     snapshot.docs.map(async (doc) => {
       const { token } = doc.data() as AccountToken;
       if (!token) return Promise.resolve();
-      const context = { token, guild: doc.id };
 
+      const context = { token, guild: doc.id };
       const servers = await getServers(context);
 
       await Promise.all(
