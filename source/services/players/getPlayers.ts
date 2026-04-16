@@ -1,29 +1,22 @@
-import type { Context } from "../global.types";
-import type { Player } from "./types";
-import { base } from "../../config/constants";
+import axios, { type AxiosInstance } from "axios";
+import type { Players } from "./types";
 
-import axios from "axios";
+type PlayersPartial = Players["data"]["players"];
 
 export const getPlayers = async (
-  ctx: Omit<Context, "guild">,
-): Promise<Player[]> => {
+  client: AxiosInstance,
+  id: number,
+): Promise<PlayersPartial> => {
   try {
-    const {
-      data: { data },
-    } = await axios.get(
-      `${base}/services/${ctx.server_id}/gameservers/games/players`,
-      {
-        headers: {
-          Authorization: `Bearer ${ctx.token}`,
-        },
-      },
+    const { data } = await client.get<Players>(
+      `/services/${id}/gameservers/games/players`,
     );
 
-    return data.players;
+    const players = data.data.players.filter((player) => player.online);
+
+    return players;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.code === "429") console.log("Rate limited");
-    }
+    if (axios.isAxiosError(error) && error.response?.status === 429) null;
     throw error;
   }
 };

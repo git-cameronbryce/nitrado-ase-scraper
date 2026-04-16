@@ -1,15 +1,19 @@
-import { AxiosInstance } from "axios";
-import { Gameserver } from "./types";
+import axios, { type AxiosInstance } from "axios";
+import type { Gameserver } from "./types";
 
 type GameserverPartial = Gameserver["data"]["gameserver"];
 
 export const getGameservers = async (
   client: AxiosInstance,
-  ids: number[],
+  id: number,
 ): Promise<GameserverPartial> => {
-  const { data } = await client.get<Gameserver>(`/services/${ids}/gameservers`);
-
-  console.log(data.data.gameserver.memory_mb);
-
-  return data.data.gameserver;
+  try {
+    const { data } = await client.get<Gameserver>(
+      `/services/${id}/gameservers`,
+    );
+    return data.data.gameserver;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 429) null;
+    throw error;
+  }
 };
