@@ -1,45 +1,28 @@
-import { upsertPlayers } from "./services/upsert/upsertPlayers";
-import { upsertServers } from "./services/upsert/upsertServers";
+import axios, { get } from "axios";
+import { db } from "./database/client";
+import { accountsTable } from "./database/schema";
+import { getServices } from "./services/servers/getServers";
+import { getGameservers } from "./services/servers/getGameservers";
 import { getPlayers } from "./services/players/getPlayers";
-import { getServers } from "./services/servers/getServers";
-import { db } from "./config/firebase";
-
-interface AccountToken {
-  token: string;
-}
 
 const main = async (): Promise<void> => {
-  const tokenRef = db.collection("accounts");
-  const snapshot = await tokenRef.get();
+  const accounts = await db.select().from(accountsTable);
 
-  await Promise.all(
-    snapshot.docs.map(async (doc) => {
-      const { token } = doc.data() as AccountToken;
-      if (!token) return Promise.resolve();
+  accounts.forEach(async (account) => {
+    const { token, guild } = account;
 
-      const context = { token, guild: doc.id };
-      const servers = await getServers(context);
+    const client = axios.create({
+      baseURL: "https://api.nitrado.net",
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      await Promise.all(
-        servers.map(async (server) => {
-          const players = await getPlayers({
-            ...context,
-            server_id: server.service_id,
-          });
+    const ids = await getServices(client);
 
-          await upsertPlayers(players, {
-            ...context,
-            server_id: server.service_id,
-          });
-
-          await upsertServers(server, {
-            ...context,
-            server_id: server.service_id,
-          });
-        }),
-      );
-    }),
-  );
+    ids.forEach(async (id) => {
+      const gameservers = await getGameservers(client, [id]);
+      // const players = await getPlayers(client, [id]);
+    });
+  });
 };
 
 main();
