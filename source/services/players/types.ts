@@ -1,9 +1,12 @@
-interface Player {
-  name: string;
-  id: string;
-
-  online: boolean;
-  last_online: string;
+interface Players {
+  data: {
+    players: {
+      name: string;
+      id: string;
+      online: boolean;
+      last_online: string;
+    }[];
+  };
 }
 
-export type { Player };
+export type { Players };

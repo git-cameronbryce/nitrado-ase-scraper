@@ -1,51 +1,18 @@
-import type { Context } from "../global.types";
-import type { Gameserver, Services } from "./types";
-import { base, platforms } from "../../config/constants";
+import axios, { type AxiosInstance } from "axios";
+import type { Services } from "./types";
 
-import axios from "axios";
-
-const getGameserver = async (
-  ctx: Omit<Context, "guild">,
-): Promise<Gameserver> => {
+const platforms: string[] = ["arkxb", "arkps"];
+export const getServices = async (client: AxiosInstance): Promise<number[]> => {
   try {
-    const {
-      data: { data },
-    } = await axios.get(`${base}/services/${ctx.server_id}/gameservers`, {
-      headers: { Authorization: `Bearer ${ctx.token}` },
+    const { data } = await client.get<Services>("/services");
+
+    const services = data.data.services.filter((service) => {
+      return platforms.includes(service.details.folder_short);
     });
 
-    return data.gameserver;
+    return services.map((service) => service.id);
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.code === "429") console.log("Rate limited");
-    }
-    throw error;
-  }
-};
-
-export const getServers = async (
-  ctx: Pick<Context, "token">,
-): Promise<Gameserver[]> => {
-  try {
-    const {
-      data: { data },
-    } = await axios.get(`${base}/services`, {
-      headers: { Authorization: `Bearer ${ctx.token}` },
-    });
-
-    const filtered = data.services.filter((service: Services) =>
-      platforms.includes(service.details.folder_short),
-    );
-
-    return Promise.all(
-      filtered.map((service: Services) =>
-        getGameserver({ ...ctx, server_id: service.id }),
-      ),
-    );
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.code === "429") console.log("Rate limited");
-    }
+    if (axios.isAxiosError(error) && error.response?.status === 429) null;
     throw error;
   }
 };

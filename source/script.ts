@@ -1,42 +1,45 @@
-import { upsertPlayers } from "./services/upsert/upsertPlayers";
-import { upsertServers } from "./services/upsert/upsertServers";
+import { getGameservers } from "./services/servers/getGameservers";
+import { getServices } from "./services/servers/getServers";
 import { getPlayers } from "./services/players/getPlayers";
-import { getServers } from "./services/servers/getServers";
-import { db } from "./config/firebase";
+import { upsert } from "./services/upsert";
+import { db } from "./database/client";
+import axios from "axios";
 
-interface AccountToken {
-  token: string;
-}
+import { accountsTable } from "./database/schema";
 
 const main = async (): Promise<void> => {
-  const tokenRef = db.collection("accounts");
-  const snapshot = await tokenRef.get();
+  const accounts = await db.select().from(accountsTable);
 
   await Promise.all(
-    snapshot.docs.map(async (doc) => {
-      const { token } = doc.data() as AccountToken;
-      if (!token) return Promise.resolve();
+    accounts.map(async (account) => {
+      const { token, guild } = account;
 
-      const context = { token, guild: doc.id };
-      const servers = await getServers(context);
+      const client = axios.create({
+        baseURL: "https://api.nitrado.net",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const ids = await getServices(client);
+
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const [gameserver, players] = await Promise.all([
+            getGameservers(client, id),
+            getPlayers(client, id),
+          ]);
+
+          return { guild, gameserver, players };
+        }),
+      );
+
+      const valid = results.filter(
+        ({ gameserver, players }) => gameserver !== null && players !== null,
+      );
 
       await Promise.all(
-        servers.map(async (server) => {
-          const players = await getPlayers({
-            ...context,
-            server_id: server.service_id,
-          });
-
-          await upsertPlayers(players, {
-            ...context,
-            server_id: server.service_id,
-          });
-
-          await upsertServers(server, {
-            ...context,
-            server_id: server.service_id,
-          });
-        }),
+        valid.map(({ gameserver, players }) =>
+          upsert(gameserver, players, guild),
+        ),
       );
     }),
   );
