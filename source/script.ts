@@ -43,6 +43,9 @@ const main = async (): Promise<void> => {
       );
     }),
   );
+
+  console.log("Script completed");
 };
 
 main();
+setInterval(main, 30000);
